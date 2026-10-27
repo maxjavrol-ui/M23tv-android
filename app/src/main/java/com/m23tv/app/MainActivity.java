@@ -41,7 +41,8 @@ public class MainActivity extends Activity {
         "live.tvpublica.ar",
         "live.telefe.com",
         "streaming.eltrece.com.ar",
-        "stream-gtlc.telecentro.net.ar"
+        "stream-gtlc.telecentro.net.ar",
+        "190.128.214.97"
     ));
 
     @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
@@ -139,7 +140,8 @@ public class MainActivity extends Activity {
         String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase();
         String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase();
         String path = uri.getPath() == null ? "" : uri.getPath().toLowerCase();
-        if (!"https".equals(scheme) || !PUBLIC_STREAM_HOSTS.contains(host) || !path.contains(".m3u8")) {
+        boolean allowedScheme = "https".equals(scheme) || ("http".equals(scheme) && "190.128.214.97".equals(host));
+        if (!allowedScheme || !PUBLIC_STREAM_HOSTS.contains(host) || !path.contains(".m3u8")) {
             Toast.makeText(this, "Esta fuente no está habilitada en el reproductor integrado.", Toast.LENGTH_LONG).show();
             return;
         }
