@@ -50,14 +50,19 @@ function openChannel(x){
 const player=document.getElementById('livePlayer');
 const title=document.getElementById('playerTitle');
 const status=document.getElementById('playerStatus');
+if(x.stream && window.M23Player && typeof window.M23Player.playStream==='function'){
+  title.textContent=x.name;
+  status.textContent='Abriendo reproductor en vivo… Si la fuente está disponible, comenzará a reproducirse.';
+  window.M23Player.playStream(x.stream,x.name);
+  return;
+}
 if(x.stream){
   title.textContent=x.name;
   player.pause(); player.removeAttribute('src'); player.load();
   player.src=x.stream; player.load();
-  status.textContent='Conectando con una fuente pública encontrada para '+x.name+'. La URL puede cambiar o tener restricciones regionales.';
-  player.onerror=()=>{status.textContent='Esta fuente no respondió o no es compatible con el reproductor del teléfono. Tocá el acceso oficial del canal para seguir viendo.';};
+  status.textContent='Conectando con una fuente pública encontrada para '+x.name+'.';
   const p=player.play();
-  if(p&&p.catch)p.catch(()=>{status.textContent='El teléfono no pudo reproducir esta fuente directamente. Podés probar el sitio oficial del canal.';});
+  if(p&&p.catch)p.catch(()=>{status.textContent='No se pudo iniciar esta fuente en el reproductor web.';});
   player.scrollIntoView({behavior:'smooth',block:'start'});
   return;
 }
