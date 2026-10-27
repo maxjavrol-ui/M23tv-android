@@ -13,3 +13,7 @@ Proyecto Android nativo con una interfaz WebView local, catálogo informativo de
 Abrir esta carpeta en Android Studio con JDK 17 y Android SDK Platform 35 instalado. Sincronizar Gradle y ejecutar `Build > Build APK(s)`.
 
 El entorno donde se preparó este paquete no tiene Android SDK/Gradle instalados, así que este ZIP contiene el proyecto fuente y todavía no es un APK compilado.
+
+
+## Reproductor en vivo
+La interfaz incluye un reproductor integrado para señales públicas compatibles. La disponibilidad de cada transmisión depende del emisor. Los canales que requieren suscripción se abren mediante sus accesos oficiales y no se desbloquean ni se copian flujos privados.
