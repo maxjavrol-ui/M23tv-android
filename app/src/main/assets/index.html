@@ -16,11 +16,22 @@ function mergeCatalog(parsed){const live=parsed.map((x,i)=>({...x,id:'live-'+i,c
 
 let channels=[],category='Todos',mode='En vivo',favorites=new Set();try{favorites=new Set(JSON.parse(localStorage.getItem('m23-favs')||'[]'))}catch(e){}
 const $=id=>document.getElementById(id);
-const defaultList='https://m3u.cl/lista/AR.m3u';
+const publicLiveSources=[
+{name:'DeporTV',url:'https://5fb24b460df87.streamlock.net/live-cont.ar/deportv/playlist.m3u8',group:'Deportes'},
+{name:'Canal 26',url:'https://stream-gtlc.telecentro.net.ar/hls/canal26hls/main.m3u8',group:'Noticias'},
+{name:'El Trece',url:'https://live-01-02-eltrece.vodgc.net/eltrecetv/index.m3u8',group:'Variedad'},
+{name:'NET TV',url:'https://unlimited1-us.dps.live/nettv/nettv.smil/playlist.m3u8',group:'Variedad'},
+{name:'Cine.Ar',url:'https://5fb24b460df87.streamlock.net/live-cont.ar/cinear/playlist.m3u8',group:'Películas y series'},
+{name:'Tec TV',url:'https://tv.initium.net.ar:3939/live/tectvmainlive.m3u8',group:'Documentales'},
+{name:'TV Universidad',url:'https://stratus.stream.cespi.unlp.edu.ar/hls/tvunlp.m3u8',group:'Variedad'},
+{name:'Mirador TV',url:'https://5fb24b460df87.streamlock.net/live-cont.ar/mirador/playlist.m3u8',group:'Variedad'}
+].map((x,i)=>({...x,id:'public-'+i,country:'Argentina',catalogOnly:false}));
+
+const defaultList='https://raw.githubusercontent.com/Free-TV/IPTV/master/playlists/playlist_argentina.m3u8';
 function loadPlaylist(url=defaultList){if(!window.M23Player||!window.M23Player.loadPlaylist){setStatus('El catálogo se carga dentro de la aplicación Android.');return}setStatus('Conectando con las señales disponibles…');window.M23Player.loadPlaylist(url)}
 function setStatus(s){$('status').textContent=s}
-window.onPlaylistLoaded=function(json){try{const parsed=JSON.parse(json);channels=[...sportsCatalog,...mergeCatalog(parsed)];channels.sort((a,b)=>(isArgentina(b)?1:0)-(isArgentina(a)?1:0));category='Argentina';const playable=channels.filter(x=>x.url&&!x.catalogOnly).length;const pending=channels.filter(x=>x.catalogOnly).length;setStatus('Catálogo MagLink: '+maglinkCatalog.length+' canales · '+playable+' con fuente en tu lista · '+pending+' pendientes de una URL autorizada.');renderChips();render()}catch(e){setStatus('No se pudo interpretar el contenido de la lista.')}};
-window.onPlaylistError=function(message){channels=maglinkCatalog.map(c=>({id:c.id,name:c.name,country:c.country,group:c.category,url:'',catalogOnly:true}));category='Argentina';renderChips();render();setStatus('Catálogo disponible sin reproducción: no se pudo cargar la lista de fuentes. '+message)};
+window.onPlaylistLoaded=function(json){try{const parsed=JSON.parse(json);channels=[...sportsCatalog,...mergeCatalog([...parsed,...publicLiveSources])];channels.sort((a,b)=>(isArgentina(b)?1:0)-(isArgentina(a)?1:0));category='Argentina';const playable=channels.filter(x=>x.url&&!x.catalogOnly).length;const pending=channels.filter(x=>x.catalogOnly).length;setStatus('Catálogo MagLink: '+maglinkCatalog.length+' canales · '+playable+' con fuente en tu lista · '+pending+' pendientes de una URL autorizada.');renderChips();render()}catch(e){setStatus('No se pudo interpretar el contenido de la lista.')}};
+window.onPlaylistError=function(message){channels=mergeCatalog(publicLiveSources);category='Argentina';renderChips();render();setStatus('Catálogo disponible sin reproducción: no se pudo cargar la lista de fuentes. '+message)};
 function hay(x){return ((x.name||'')+' '+(x.group||'')).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()}
 function mediaType(x){const s=hay(x),g=hay({name:x.group||'',group:''}),u=(x.url||'').toLowerCase();if(/adult|adultos|xxx|18\+|erotic|erotico|playboy|hustler|hot club/.test(g+' '+s))return 'Contenido restringido';if(/anime|animacion japonesa|crunchyroll|aniplex|otaku/.test(g+' '+s))return 'Anime';if(/series|temporadas|episodios|tv shows|shows|series tv/.test(g+' '+s)||/\/(series|tvshows)\//.test(u))return 'Series';if(/peliculas|movies|cine|films|vod movie|largometraje/.test(g+' '+s)||/\/(movies|peliculas|films)\//.test(u))return 'Películas';return 'En vivo'}
 function setMode(m){mode=m;category=m==='En vivo'?'Argentina':m;document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));renderChips();render()}
