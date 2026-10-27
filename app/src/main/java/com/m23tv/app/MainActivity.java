@@ -13,21 +13,17 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.content.Intent;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.MimeTypes;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.ui.PlayerView;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 public class MainActivity extends Activity {
     private WebView webView;
@@ -36,14 +32,6 @@ public class MainActivity extends Activity {
     private PlayerView playerView;
     private ExoPlayer player;
     private TextView playerTitle;
-
-    private static final Set<String> PUBLIC_STREAM_HOSTS = new HashSet<>(Arrays.asList(
-        "live.tvpublica.ar",
-        "live.telefe.com",
-        "streaming.eltrece.com.ar",
-        "stream-gtlc.telecentro.net.ar",
-        "190.128.214.97"
-    ));
 
     @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
     @Override
@@ -60,17 +48,11 @@ public class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                // No sacar al usuario de M23 TV a una página externa.
                 Uri uri = request.getUrl();
                 String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase();
-                if ("http".equals(scheme) || "https".equals(scheme)) {
-                    openExternal(uri);
-                    return true;
-                }
-                if ("mailto".equals(scheme) || "tel".equals(scheme)) {
-                    openExternal(uri);
-                    return true;
-                }
-                return false;
+                return "http".equals(scheme) || "https".equals(scheme)
+                    || "mailto".equals(scheme) || "tel".equals(scheme);
             }
         });
         root.addView(webView, new FrameLayout.LayoutParams(
@@ -124,25 +106,31 @@ public class MainActivity extends Activity {
     private final class LivePlayerBridge {
         @JavascriptInterface
         public void playStream(String url, String title) {
-            runOnUiThread(() -> startPublicStream(url, title));
+            runOnUiThread(() -> startStream(url, title));
         }
     }
 
-    private void startPublicStream(String rawUrl, String title) {
-        Uri uri;
+    private void startStream(String rawUrl, String title) {
+        final Uri uri;
         try {
             uri = Uri.parse(rawUrl);
         } catch (Exception e) {
-            Toast.makeText(this, "Dirección de señal inválida", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Dirección de señal inválida.", Toast.LENGTH_LONG).show();
             return;
         }
 
         String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase();
-        String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase();
+        String host = uri.getHost();
         String path = uri.getPath() == null ? "" : uri.getPath().toLowerCase();
-        boolean allowedScheme = "https".equals(scheme) || ("http".equals(scheme) && "190.128.214.97".equals(host));
-        if (!allowedScheme || !PUBLIC_STREAM_HOSTS.contains(host) || !path.contains(".m3u8")) {
-            Toast.makeText(this, "Esta fuente no está habilitada en el reproductor integrado.", Toast.LENGTH_LONG).show();
+        boolean validWebUrl = ("https".equals(scheme) || "http".equals(scheme))
+            && host != null && !host.trim().isEmpty() && uri.getUserInfo() == null;
+        boolean hls = path.contains(".m3u8")
+            || (uri.getQuery() != null && uri.getQuery().toLowerCase().contains(".m3u8"));
+
+        if (!validWebUrl || !hls) {
+            Toast.makeText(this,
+                "Este canal no tiene una dirección directa HLS disponible para reproducir.",
+                Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -154,32 +142,32 @@ public class MainActivity extends Activity {
                     @Override
                     public void onPlayerError(PlaybackException error) {
                         Toast.makeText(MainActivity.this,
-                            "No se pudo reproducir esta señal. Puede estar fuera de línea o restringida.",
+                            "La señal no respondió. Puede estar caída, restringida o requerir autorización.",
                             Toast.LENGTH_LONG).show();
                     }
                 });
             }
+
+            player.stop();
+            player.clearMediaItems();
             playerTitle.setText(title == null || title.trim().isEmpty() ? "M23 TV · En vivo" : title);
             playerLayer.setVisibility(View.VISIBLE);
-            player.setMediaItem(MediaItem.fromUri(uri));
+
+            MediaItem item = new MediaItem.Builder()
+                .setUri(uri)
+                .setMimeType(MimeTypes.APPLICATION_M3U8)
+                .build();
+            player.setMediaItem(item);
             player.prepare();
             player.play();
         } catch (Exception e) {
-            Toast.makeText(this, "No se pudo iniciar el reproductor.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "No se pudo iniciar el reproductor integrado.", Toast.LENGTH_LONG).show();
         }
     }
 
     private void hidePlayer() {
         if (player != null) player.pause();
         if (playerLayer != null) playerLayer.setVisibility(View.GONE);
-    }
-
-    private void openExternal(Uri uri) {
-        try {
-            startActivity(new Intent(Intent.ACTION_VIEW, uri));
-        } catch (Exception ignored) {
-            Toast.makeText(this, "No hay una aplicación disponible para abrir este enlace.", Toast.LENGTH_SHORT).show();
-        }
     }
 
     @Override
