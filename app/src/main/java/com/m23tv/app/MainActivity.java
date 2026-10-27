@@ -24,11 +24,16 @@ public class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                if ("web.flow.com.ar".equals(uri.getHost()) || "flow.com.ar".equals(uri.getHost())) {
-                    return false;
+                String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase();
+                // Flow playback is handed to the official browser, where its supported
+                // sign-in, DRM and playback components can run. M23 TV does not bypass access controls.
+                if (host.equals("flow.com.ar") || host.endsWith(".flow.com.ar")
+                        || host.equals("flow.com.py") || host.endsWith(".flow.com.py")) {
+                    openExternal(uri);
+                    return true;
                 }
                 if ("http".equals(uri.getScheme()) || "https".equals(uri.getScheme())) {
-                    startActivity(new Intent(Intent.ACTION_VIEW, uri));
+                    openExternal(uri);
                     return true;
                 }
                 return false;
@@ -36,6 +41,14 @@ public class MainActivity extends Activity {
         });
         setContentView(webView);
         webView.loadUrl("file:///android_asset/index.html");
+    }
+
+    private void openExternal(Uri uri) {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, uri));
+        } catch (Exception ignored) {
+            // Leave the local M23 TV interface usable if no browser can handle the link.
+        }
     }
 
     @Override
