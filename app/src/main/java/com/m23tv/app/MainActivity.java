@@ -153,10 +153,15 @@ public class MainActivity extends Activity {
     }
 
     private static String attribute(String line, String key) {
-        try {
-            java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?:^|\\s)" + java.util.regex.Pattern.quote(key) + "=[\\"']([^\\"']*)[\\"']", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(line);
-            return m.find() ? m.group(1).trim() : "";
-        } catch (Exception ignored) { return ""; }
+        String marker = key + "=";
+        int at = line.toLowerCase(Locale.ROOT).indexOf(marker.toLowerCase(Locale.ROOT));
+        if (at < 0) return "";
+        int start = at + marker.length();
+        if (start >= line.length()) return "";
+        char quote = line.charAt(start);
+        if (quote != '"' && quote != 39) return "";
+        int finish = line.indexOf(quote, start + 1);
+        return finish > start ? line.substring(start + 1, finish).trim() : "";
     }
 
     private void startStream(String rawUrl, String title) {
