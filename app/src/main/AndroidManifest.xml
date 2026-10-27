@@ -3,7 +3,7 @@
     <application
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:label="M23 TV"
-        android:usesCleartextTraffic="false"
+        android:usesCleartextTraffic="true"
         android:hardwareAccelerated="true"
         android:allowBackup="false">
         <activity
